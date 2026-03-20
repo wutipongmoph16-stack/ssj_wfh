@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WFH Attendance System</title>
+    <title>ระบบลงเวลางาน WFH</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap"
       rel="stylesheet"
@@ -37,13 +37,14 @@
         border-radius: 24px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
         text-align: center;
-        display: none;
+        display: none; /* ซ่อนจนกว่าจะโหลดสถานะเสร็จ */
       }
 
       #loader {
         margin-top: 100px;
         color: #666;
         font-size: 18px;
+        text-align: center;
       }
 
       input,
@@ -71,6 +72,10 @@
         transition: 0.3s;
       }
 
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
       .btn-blue {
         background-color: var(--primary);
       }
@@ -95,23 +100,24 @@
         border-radius: 16px;
         background: #000;
         margin-bottom: 15px;
-        transform: scaleX(-1);
+        transform: scaleX(-1); /* Mirror Mode */
       }
 
       .status-text {
         margin-top: 10px;
         font-size: 14px;
-        color: #666;
+        color: #007bff;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <div id="loader">⚙️ กำลังเชื่อมต่อระบบ...</div>
+    <div id="loader">⚙️ กำลังเชื่อมต่อระบบพนักงาน...</div>
 
     <div id="step-profile" class="container">
       <img id="lineImg" class="profile-img" src="" />
       <h2 id="lineName">ยินดีต้อนรับ</h2>
-      <p>กรุณาลงทะเบียนข้อมูลพนักงาน</p>
+      <p>กรุณาลงทะเบียนข้อมูลพนักงานครั้งแรก</p>
 
       <input type="text" id="regName" placeholder="ชื่อ-นามสกุลจริง" />
       <input type="number" id="regId" placeholder="เลขบัตรประชาชน 13 หลัก" />
@@ -127,14 +133,19 @@
       <input type="tel" id="regPhone1" placeholder="เบอร์โทรศัพท์หลัก" />
       <input type="tel" id="regPhone2" placeholder="เบอร์โทรศัพท์สำรอง" />
 
-      <button class="btn-blue" onclick="saveProfile()">บันทึกข้อมูล</button>
+      <button id="btnSaveProfile" class="btn-blue" onclick="saveProfile()">
+        บันทึกข้อมูลส่วนตัว
+      </button>
     </div>
 
     <div id="step-home" class="container">
       <div style="font-size: 60px">🏠</div>
-      <h2>ปักหมุดที่ทำงาน/บ้าน</h2>
-      <p>กดปุ่มนี้ขณะที่คุณอยู่ ณ สถานที่ทำงานจริง</p>
-      <button class="btn-blue" onclick="saveHome()">
+      <h2>ลงทะเบียนจุดอ้างอิง</h2>
+      <p>
+        กรุณากดปุ่มนี้ขณะที่คุณอยู่ ณ สถานที่ทำงานจริง (บ้าน) เพื่อใช้ตรวจสอบ
+        Geofencing
+      </p>
+      <button id="btnSaveHome" class="btn-blue" onclick="saveHome()">
         📍 บันทึกพิกัดปัจจุบัน
       </button>
     </div>
@@ -144,10 +155,10 @@
       <video id="video" autoplay playsinline></video>
       <canvas id="canvas" style="display: none"></canvas>
 
-      <button class="btn-green" onclick="submitAttendance('Check-In')">
+      <button class="btn-green" onclick="handleAttendance('Check-In')">
         บันทึกเข้างาน (IN)
       </button>
-      <button class="btn-red" onclick="submitAttendance('Check-Out')">
+      <button class="btn-red" onclick="handleAttendance('Check-Out')">
         บันทึกออกงาน (OUT)
       </button>
 
@@ -167,17 +178,27 @@
         displayName = "",
         pictureUrl = "";
 
-      // ฟังก์ชันส่งข้อมูลไปยัง Google Apps Script (doPost)
+      /**
+       * สื่อสารกับ Google Apps Script ผ่าน API
+       */
       async function callApi(payload) {
-        const response = await fetch(WEB_APP_URL, {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        const result = await response.json();
-        if (result.status === "error") throw new Error(result.message);
-        return result.data;
+        try {
+          const response = await fetch(WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          const result = await response.json();
+          if (result.status === "error") throw new Error(result.message);
+          return result.data;
+        } catch (err) {
+          console.error("API Error:", err);
+          throw err;
+        }
       }
 
+      /**
+       * เริ่มต้นระบบ
+       */
       async function init() {
         try {
           await liff.init({ liffId: LIFF_ID });
@@ -191,7 +212,7 @@
           displayName = profile.displayName;
           pictureUrl = profile.pictureUrl;
 
-          // ตรวจสอบสถานะ User จาก API
+          // เช็คสถานะการลงทะเบียน
           const status = await callApi({
             action: "CHECK_STATUS",
             lineUserId: uId,
@@ -214,7 +235,7 @@
             startCamera();
           }
         } catch (err) {
-          alert("เกิดข้อผิดพลาด: " + err.message);
+          alert("ระบบขัดข้อง: " + err.message);
         }
       }
 
@@ -234,6 +255,7 @@
       }
 
       async function saveProfile() {
+        const btn = document.getElementById("btnSaveProfile");
         const payload = {
           action: "REGISTER_PROFILE",
           lineUserId: uId,
@@ -247,16 +269,29 @@
           phone2: document.getElementById("regPhone2").value,
         };
 
+        if (
+          !payload.fullName ||
+          payload.idCard.length !== 13 ||
+          !payload.department
+        ) {
+          alert("กรุณากรอกข้อมูลให้ครบถ้วนและบัตรประชาชนต้องมี 13 หลัก");
+          return;
+        }
+
+        btn.disabled = true;
         try {
           const res = await callApi(payload);
           alert(res);
           location.reload();
         } catch (e) {
           alert(e.message);
+          btn.disabled = false;
         }
       }
 
       function saveHome() {
+        const btn = document.getElementById("btnSaveHome");
+        btn.disabled = true;
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             try {
@@ -270,9 +305,13 @@
               location.reload();
             } catch (e) {
               alert(e.message);
+              btn.disabled = false;
             }
           },
-          (err) => alert("กรุณาเปิด GPS"),
+          (err) => {
+            alert("กรุณาเปิด GPS");
+            btn.disabled = false;
+          },
         );
       }
 
@@ -280,41 +319,46 @@
         const video = document.getElementById("video");
         navigator.mediaDevices
           .getUserMedia({ video: { facingMode: "user" } })
-          .then((stream) => (video.srcObject = stream));
+          .then((stream) => (video.srcObject = stream))
+          .catch((err) => alert("ไม่สามารถเปิดกล้องได้"));
       }
 
-      async function submitAttendance(type) {
-        document.getElementById("att-status").innerText =
-          "⌛ กำลังตรวจสอบพิกัดและใบหน้า...";
+      async function handleAttendance(type) {
+        const statusLabel = document.getElementById("att-status");
+        statusLabel.innerText = "⌛ กำลังประมวลผล...";
 
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const canvas = document.getElementById("canvas");
             const video = document.getElementById("video");
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-
             const ctx = canvas.getContext("2d");
             ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1); // Mirror
+            ctx.scale(-1, 1); // กลับด้านรูป
             ctx.drawImage(video, 0, 0);
 
+            // สร้าง Payload ภายใน Callback เพื่อป้องกัน Error undefined
+            const attendanceData = {
+              action: "ATTENDANCE",
+              status: type,
+              lineUserId: uId,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              image: canvas.toDataURL("image/jpeg", 0.6),
+            };
+
             try {
-              const res = await callApi({
-                action: "ATTENDANCE",
-                status: type,
-                lineUserId: uId,
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                image: canvas.toDataURL("image/jpeg", 0.6),
-              });
+              const res = await callApi(attendanceData);
               alert(res);
-              document.getElementById("att-status").innerText = "✅ " + res;
+              statusLabel.innerText = "✅ " + res;
             } catch (e) {
               alert(e.message);
+              statusLabel.innerText = "❌ เกิดข้อผิดพลาด";
             }
           },
-          (err) => alert("กรุณาเปิด GPS"),
+          (err) => alert("โปรดอนุญาตสิทธิ์เข้าถึงพิกัด"),
           { enableHighAccuracy: true },
         );
       }
