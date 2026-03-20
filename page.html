@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WFH Attendance System</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <style>
+      :root {
+        --primary: #007bff;
+        --success: #28a745;
+        --danger: #dc3545;
+        --bg: #f0f2f5;
+      }
+
+      body {
+        font-family: "Kanit", sans-serif;
+        background-color: var(--bg);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        padding: 30px;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        display: none;
+      }
+
+      #loader {
+        margin-top: 100px;
+        color: #666;
+        font-size: 18px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 14px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        box-sizing: border-box;
+        font-family: "Kanit", sans-serif;
+        font-size: 16px;
+      }
+
+      button {
+        width: 100%;
+        padding: 16px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 18px;
+        cursor: pointer;
+        color: white;
+        transition: 0.3s;
+      }
+
+      .btn-blue {
+        background-color: var(--primary);
+      }
+      .btn-green {
+        background-color: var(--success);
+      }
+      .btn-red {
+        background-color: var(--danger);
+      }
+
+      .profile-img {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 10px;
+      }
+
+      video {
+        width: 100%;
+        border-radius: 16px;
+        background: #000;
+        margin-bottom: 15px;
+        transform: scaleX(-1);
+      }
+
+      .status-text {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader">⚙️ กำลังเชื่อมต่อระบบ...</div>
+
+    <div id="step-profile" class="container">
+      <img id="lineImg" class="profile-img" src="" />
+      <h2 id="lineName">ยินดีต้อนรับ</h2>
+      <p>กรุณาลงทะเบียนข้อมูลพนักงาน</p>
+
+      <input type="text" id="regName" placeholder="ชื่อ-นามสกุลจริง" />
+      <input type="number" id="regId" placeholder="เลขบัตรประชาชน 13 หลัก" />
+
+      <select id="regDept">
+        <option value="">-- เลือกกลุ่มงาน/แผนก --</option>
+      </select>
+
+      <select id="regJob">
+        <option value="">-- เลือกตำแหน่งงาน --</option>
+      </select>
+
+      <input type="tel" id="regPhone1" placeholder="เบอร์โทรศัพท์หลัก" />
+      <input type="tel" id="regPhone2" placeholder="เบอร์โทรศัพท์สำรอง" />
+
+      <button class="btn-blue" onclick="saveProfile()">บันทึกข้อมูล</button>
+    </div>
+
+    <div id="step-home" class="container">
+      <div style="font-size: 60px">🏠</div>
+      <h2>ปักหมุดที่ทำงาน/บ้าน</h2>
+      <p>กดปุ่มนี้ขณะที่คุณอยู่ ณ สถานที่ทำงานจริง</p>
+      <button class="btn-blue" onclick="saveHome()">
+        📍 บันทึกพิกัดปัจจุบัน
+      </button>
+    </div>
+
+    <div id="step-attendance" class="container">
+      <h3 id="userGreeting">สวัสดี</h3>
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas" style="display: none"></canvas>
+
+      <button class="btn-green" onclick="submitAttendance('Check-In')">
+        บันทึกเข้างาน (IN)
+      </button>
+      <button class="btn-red" onclick="submitAttendance('Check-Out')">
+        บันทึกออกงาน (OUT)
+      </button>
+
+      <p id="att-status" class="status-text"></p>
+    </div>
+
+    <script>
+      // ******************************************
+      // คอนฟิกค่าที่นี่
+      // ******************************************
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbzC8dejEoIZfZWwI-xNUAgQjQzQFJOSD_FkgzCbeN-FjTR6-RmFgBL4AkdNo3TRIqhc/exec";
+      const LIFF_ID = "2009545857-BaQZhw9y";
+      // ******************************************
+
+      let uId = "",
+        displayName = "",
+        pictureUrl = "";
+
+      // ฟังก์ชันส่งข้อมูลไปยัง Google Apps Script (doPost)
+      async function callApi(payload) {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (result.status === "error") throw new Error(result.message);
+        return result.data;
+      }
+
+      async function init() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          const profile = await liff.getProfile();
+          uId = profile.userId;
+          displayName = profile.displayName;
+          pictureUrl = profile.pictureUrl;
+
+          // ตรวจสอบสถานะ User จาก API
+          const status = await callApi({
+            action: "CHECK_STATUS",
+            lineUserId: uId,
+          });
+
+          document.getElementById("loader").style.display = "none";
+
+          if (!status.registered || !status.hasProfile) {
+            await loadDropdowns();
+            showView("step-profile");
+            document.getElementById("lineName").innerText = displayName;
+            document.getElementById("lineImg").src =
+              pictureUrl || "https://via.placeholder.com/90";
+          } else if (!status.hasHome) {
+            showView("step-home");
+          } else {
+            showView("step-attendance");
+            document.getElementById("userGreeting").innerText =
+              "คุณ " + status.fullName;
+            startCamera();
+          }
+        } catch (err) {
+          alert("เกิดข้อผิดพลาด: " + err.message);
+        }
+      }
+
+      function showView(id) {
+        document
+          .querySelectorAll(".container")
+          .forEach((c) => (c.style.display = "none"));
+        document.getElementById(id).style.display = "block";
+      }
+
+      async function loadDropdowns() {
+        const data = await callApi({ action: "GET_DROPDOWN" });
+        const dSelect = document.getElementById("regDept");
+        const jSelect = document.getElementById("regJob");
+        data.departments.forEach((d) => dSelect.add(new Option(d, d)));
+        data.jobTitles.forEach((j) => jSelect.add(new Option(j, j)));
+      }
+
+      async function saveProfile() {
+        const payload = {
+          action: "REGISTER_PROFILE",
+          lineUserId: uId,
+          lineDisplayName: displayName,
+          profilePicUrl: pictureUrl,
+          fullName: document.getElementById("regName").value,
+          idCard: document.getElementById("regId").value,
+          jobTitle: document.getElementById("regJob").value,
+          department: document.getElementById("regDept").value,
+          phone1: document.getElementById("regPhone1").value,
+          phone2: document.getElementById("regPhone2").value,
+        };
+
+        try {
+          const res = await callApi(payload);
+          alert(res);
+          location.reload();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+
+      function saveHome() {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const res = await callApi({
+                action: "REGISTER_HOME",
+                lineUserId: uId,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              });
+              alert(res);
+              location.reload();
+            } catch (e) {
+              alert(e.message);
+            }
+          },
+          (err) => alert("กรุณาเปิด GPS"),
+        );
+      }
+
+      function startCamera() {
+        const video = document.getElementById("video");
+        navigator.mediaDevices
+          .getUserMedia({ video: { facingMode: "user" } })
+          .then((stream) => (video.srcObject = stream));
+      }
+
+      async function submitAttendance(type) {
+        document.getElementById("att-status").innerText =
+          "⌛ กำลังตรวจสอบพิกัดและใบหน้า...";
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const canvas = document.getElementById("canvas");
+            const video = document.getElementById("video");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1); // Mirror
+            ctx.drawImage(video, 0, 0);
+
+            try {
+              const res = await callApi({
+                action: "ATTENDANCE",
+                status: type,
+                lineUserId: uId,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                image: canvas.toDataURL("image/jpeg", 0.6),
+              });
+              alert(res);
+              document.getElementById("att-status").innerText = "✅ " + res;
+            } catch (e) {
+              alert(e.message);
+            }
+          },
+          (err) => alert("กรุณาเปิด GPS"),
+          { enableHighAccuracy: true },
+        );
+      }
+
+      window.onload = init;
+    </script>
+  </body>
+</html>
