@@ -1,299 +1,347 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WFH Attendance System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap" rel="stylesheet">
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  
-  <style>
-    :root {
-      --primary: #007bff;
-      --success: #28a745;
-      --danger: #dc3545;
-      --bg: #f0f2f5;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WFH Attendance System</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-    body {
-      font-family: 'Kanit', sans-serif;
-      background-color: var(--bg);
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 20px;
-      box-sizing: border-box;
-    }
+    <style>
+      :root {
+        --primary: #007bff;
+        --success: #28a745;
+        --danger: #dc3545;
+        --bg: #f0f2f5;
+      }
 
-    .container {
-      width: 100%;
-      max-width: 450px;
-      background: white;
-      padding: 30px;
-      border-radius: 24px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-      text-align: center;
-      display: none; /* ซ่อนไว้ก่อนจนกว่าจะเช็คสถานะเสร็จ */
-    }
+      body {
+        font-family: "Kanit", sans-serif;
+        background-color: var(--bg);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+      }
 
-    #loader {
-      margin-top: 100px;
-      color: #666;
-    }
+      .container {
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        padding: 30px;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        display: none; /* ซ่อนไว้ก่อนจนกว่าจะเช็คสถานะเสร็จ */
+      }
 
-    h2 { color: #333; margin-bottom: 20px; }
-    p { color: #666; font-size: 14px; }
+      #loader {
+        margin-top: 100px;
+        color: #666;
+      }
 
-    /* Form Styles */
-    input, select {
-      width: 100%;
-      padding: 14px;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      box-sizing: border-box;
-      font-family: 'Kanit', sans-serif;
-      font-size: 16px;
-    }
+      h2 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+      p {
+        color: #666;
+        font-size: 14px;
+      }
 
-    button {
-      width: 100%;
-      padding: 16px;
-      margin-top: 15px;
-      border: none;
-      border-radius: 12px;
-      font-weight: bold;
-      font-size: 18px;
-      cursor: pointer;
-      transition: 0.3s;
-      color: white;
-    }
+      /* Form Styles */
+      input,
+      select {
+        width: 100%;
+        padding: 14px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        box-sizing: border-box;
+        font-family: "Kanit", sans-serif;
+        font-size: 16px;
+      }
 
-    .btn-blue { background-color: var(--primary); }
-    .btn-green { background-color: var(--success); }
-    .btn-red { background-color: var(--danger); }
-    button:active { transform: scale(0.98); opacity: 0.9; }
+      button {
+        width: 100%;
+        padding: 16px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 18px;
+        cursor: pointer;
+        transition: 0.3s;
+        color: white;
+      }
 
-    /* Profile Section */
-    .profile-img {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      border: 4px solid white;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      margin-bottom: 10px;
-    }
+      .btn-blue {
+        background-color: var(--primary);
+      }
+      .btn-green {
+        background-color: var(--success);
+      }
+      .btn-red {
+        background-color: var(--danger);
+      }
+      button:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+      }
 
-    /* Camera Section */
-    #video {
-      width: 100%;
-      border-radius: 16px;
-      background: #000;
-      margin-bottom: 15px;
-      transform: scaleX(-1); /* Mirror effect */
-    }
+      /* Profile Section */
+      .profile-img {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 10px;
+      }
 
-    .status-msg {
-      margin-top: 15px;
-      font-size: 14px;
-      color: var(--primary);
-    }
-  </style>
-</head>
-<body>
+      /* Camera Section */
+      #video {
+        width: 100%;
+        border-radius: 16px;
+        background: #000;
+        margin-bottom: 15px;
+        transform: scaleX(-1); /* Mirror effect */
+      }
 
-  <div id="loader">⚙️ กำลังตรวจสอบข้อมูลพนักงาน...</div>
+      .status-msg {
+        margin-top: 15px;
+        font-size: 14px;
+        color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader">⚙️ กำลังตรวจสอบข้อมูลพนักงาน...</div>
 
-  <div id="step-profile" class="container">
-    <img id="lineImg" class="profile-img" src="">
-    <h2 id="lineName">ยินดีต้อนรับ</h2>
-    <p>กรุณาลงทะเบียนข้อมูลพนักงานครั้งแรก</p>
-    
-    <input type="text" id="regName" placeholder="ชื่อ-นามสกุลจริง">
-    <input type="number" id="regId" placeholder="เลขบัตรประชาชน 13 หลัก">
-    
-    <select id="regDept">
-      <option value="">-- เลือกกลุ่มงาน/แผนก --</option>
-    </select>
+    <div id="step-profile" class="container">
+      <img id="lineImg" class="profile-img" src="" />
+      <h2 id="lineName">ยินดีต้อนรับ</h2>
+      <p>กรุณาลงทะเบียนข้อมูลพนักงานครั้งแรก</p>
 
-    <select id="regJob">
-      <option value="">-- เลือกตำแหน่งงาน --</option>
-    </select>
+      <input type="text" id="regName" placeholder="ชื่อ-นามสกุลจริง" />
+      <input type="number" id="regId" placeholder="เลขบัตรประชาชน 13 หลัก" />
 
-    <input type="tel" id="regPhone1" placeholder="เบอร์โทรศัพท์หลัก">
-    <input type="tel" id="regPhone2" placeholder="เบอร์โทรศัพท์สำรอง">
-    
-    <button class="btn-blue" onclick="saveProfile()">บันทึกและถัดไป</button>
-  </div>
+      <select id="regDept">
+        <option value="">-- เลือกกลุ่มงาน/แผนก --</option>
+      </select>
 
-  <div id="step-home" class="container">
-    <div style="font-size: 50px;">🏠</div>
-    <h2>ปักหมุดที่ทำงาน (Home)</h2>
-    <p>กรุณากดปุ่มนี้ขณะที่คุณอยู่ ณ สถานที่ทำงานจริง เพื่อใช้เป็นพิกัดอ้างอิง</p>
-    <button class="btn-blue" onclick="saveHome()">📍 บันทึกพิกัดปัจจุบัน</button>
-  </div>
+      <select id="regJob">
+        <option value="">-- เลือกตำแหน่งงาน --</option>
+      </select>
 
-  <div id="step-attendance" class="container">
-    <h3 id="userGreeting">สวัสดี</h3>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    
-    <button class="btn-green" onclick="submitAttendance('Check-In')">บันทึกเข้างาน (IN)</button>
-    <button class="btn-red" onclick="submitAttendance('Check-Out')">บันทึกออกงาน (OUT)</button>
-    
-    <p id="att-status" class="status-msg"></p>
-  </div>
+      <input type="tel" id="regPhone1" placeholder="เบอร์โทรศัพท์หลัก" />
+      <input type="tel" id="regPhone2" placeholder="เบอร์โทรศัพท์สำรอง" />
 
-  <script>
-    let uId = "";
-    let displayName = "";
-    let pictureUrl = "";
+      <button class="btn-blue" onclick="saveProfile()">บันทึกและถัดไป</button>
+    </div>
 
-    // 1. เริ่มต้น LIFF และเช็คสถานะ
-    async function init() {
-      try {
-        await liff.init({ liffId: "ใส่_LIFF_ID_ของคุณที่นี่" });
-        if (!liff.isLoggedIn()) {
-          liff.login();
+    <div id="step-home" class="container">
+      <div style="font-size: 50px">🏠</div>
+      <h2>ปักหมุดที่ทำงาน (Home)</h2>
+      <p>
+        กรุณากดปุ่มนี้ขณะที่คุณอยู่ ณ สถานที่ทำงานจริง เพื่อใช้เป็นพิกัดอ้างอิง
+      </p>
+      <button class="btn-blue" onclick="saveHome()">
+        📍 บันทึกพิกัดปัจจุบัน
+      </button>
+    </div>
+
+    <div id="step-attendance" class="container">
+      <h3 id="userGreeting">สวัสดี</h3>
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas" style="display: none"></canvas>
+
+      <button class="btn-green" onclick="submitAttendance('Check-In')">
+        บันทึกเข้างาน (IN)
+      </button>
+      <button class="btn-red" onclick="submitAttendance('Check-Out')">
+        บันทึกออกงาน (OUT)
+      </button>
+
+      <p id="att-status" class="status-msg"></p>
+    </div>
+
+    <script>
+      let uId = "";
+      let displayName = "";
+      let pictureUrl = "";
+
+      // 1. เริ่มต้น LIFF และเช็คสถานะ
+      async function init() {
+        try {
+          await liff.init({ liffId: "2009545857-BaQZhw9y" });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          const profile = await liff.getProfile();
+          uId = profile.userId;
+          displayName = profile.displayName;
+          pictureUrl = profile.pictureUrl;
+
+          // เรียก Backend เพื่อเช็คว่าพนักงานลงทะเบียนหรือยัง
+          google.script.run
+            .withSuccessHandler((status) => {
+              document.getElementById("loader").style.display = "none";
+
+              if (!status.registered || !status.hasProfile) {
+                loadDropdowns();
+                showContainer("step-profile");
+                document.getElementById("lineName").innerText = displayName;
+                document.getElementById("lineImg").src =
+                  pictureUrl || "https://via.placeholder.com/90";
+              } else if (!status.hasHome) {
+                showContainer("step-home");
+              } else {
+                showContainer("step-attendance");
+                document.getElementById("userGreeting").innerText =
+                  "สวัสดีคุณ " + status.fullName;
+                startCamera();
+              }
+            })
+            .checkUserStatus(uId);
+        } catch (err) {
+          alert("LIFF Error: " + err.message);
+        }
+      }
+
+      function showContainer(id) {
+        document
+          .querySelectorAll(".container")
+          .forEach((c) => (c.style.display = "none"));
+        document.getElementById(id).style.display = "block";
+      }
+
+      // 2. โหลดรายการแผนกและตำแหน่งจาก Google Sheets
+      function loadDropdowns() {
+        google.script.run
+          .withSuccessHandler((data) => {
+            const dSelect = document.getElementById("regDept");
+            const jSelect = document.getElementById("regJob");
+
+            data.departments.forEach((d) => {
+              let o = new Option(d, d);
+              dSelect.add(o);
+            });
+
+            data.jobTitles.forEach((j) => {
+              let o = new Option(j, j);
+              jSelect.add(o);
+            });
+          })
+          .getDropdownData();
+      }
+
+      // 3. ฟังก์ชันบันทึกโปรไฟล์
+      function saveProfile() {
+        const payload = {
+          action: "REGISTER_PROFILE",
+          lineUserId: uId,
+          lineDisplayName: displayName,
+          profilePicUrl: pictureUrl,
+          fullName: document.getElementById("regName").value,
+          idCard: document.getElementById("regId").value,
+          jobTitle: document.getElementById("regJob").value,
+          department: document.getElementById("regDept").value,
+          phone1: document.getElementById("regPhone1").value,
+          phone2: document.getElementById("regPhone2").value,
+        };
+
+        if (!payload.fullName || !payload.idCard || !payload.department) {
+          alert("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน");
           return;
         }
-        
-        const profile = await liff.getProfile();
-        uId = profile.userId;
-        displayName = profile.displayName;
-        pictureUrl = profile.pictureUrl;
 
-        // เรียก Backend เพื่อเช็คว่าพนักงานลงทะเบียนหรือยัง
-        google.script.run.withSuccessHandler(status => {
-          document.getElementById('loader').style.display = 'none';
-          
-          if (!status.registered || !status.hasProfile) {
-            loadDropdowns();
-            showContainer('step-profile');
-            document.getElementById('lineName').innerText = displayName;
-            document.getElementById('lineImg').src = pictureUrl || 'https://via.placeholder.com/90';
-          } else if (!status.hasHome) {
-            showContainer('step-home');
-          } else {
-            showContainer('step-attendance');
-            document.getElementById('userGreeting').innerText = "สวัสดีคุณ " + status.fullName;
-            startCamera();
-          }
-        }).checkUserStatus(uId);
-
-      } catch (err) {
-        alert("LIFF Error: " + err.message);
-      }
-    }
-
-    function showContainer(id) {
-      document.querySelectorAll('.container').forEach(c => c.style.display = 'none');
-      document.getElementById(id).style.display = 'block';
-    }
-
-    // 2. โหลดรายการแผนกและตำแหน่งจาก Google Sheets
-    function loadDropdowns() {
-      google.script.run.withSuccessHandler(data => {
-        const dSelect = document.getElementById('regDept');
-        const jSelect = document.getElementById('regJob');
-        
-        data.departments.forEach(d => {
-          let o = new Option(d, d);
-          dSelect.add(o);
-        });
-        
-        data.jobTitles.forEach(j => {
-          let o = new Option(j, j);
-          jSelect.add(o);
-        });
-      }).getDropdownData();
-    }
-
-    // 3. ฟังก์ชันบันทึกโปรไฟล์
-    function saveProfile() {
-      const payload = {
-        action: "REGISTER_PROFILE",
-        lineUserId: uId,
-        lineDisplayName: displayName,
-        profilePicUrl: pictureUrl,
-        fullName: document.getElementById('regName').value,
-        idCard: document.getElementById('regId').value,
-        jobTitle: document.getElementById('regJob').value,
-        department: document.getElementById('regDept').value,
-        phone1: document.getElementById('regPhone1').value,
-        phone2: document.getElementById('regPhone2').value
-      };
-
-      if (!payload.fullName || !payload.idCard || !payload.department) {
-        alert("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน");
-        return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            alert(res);
+            location.reload();
+          })
+          .handleServerAction(payload);
       }
 
-      google.script.run.withSuccessHandler(res => {
-        alert(res);
-        location.reload();
-      }).handleServerAction(payload);
-    }
+      // 4. ฟังก์ชันบันทึกพิกัดบ้าน
+      function saveHome() {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const payload = {
+              action: "REGISTER_HOME",
+              lineUserId: uId,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            };
+            google.script.run
+              .withSuccessHandler((res) => {
+                alert(res);
+                location.reload();
+              })
+              .handleServerAction(payload);
+          },
+          (err) => alert("กรุณาอนุญาต GPS"),
+        );
+      }
 
-    // 4. ฟังก์ชันบันทึกพิกัดบ้าน
-    function saveHome() {
-      navigator.geolocation.getCurrentPosition(pos => {
-        const payload = {
-          action: "REGISTER_HOME",
-          lineUserId: uId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-        google.script.run.withSuccessHandler(res => {
-          alert(res);
-          location.reload();
-        }).handleServerAction(payload);
-      }, err => alert("กรุณาอนุญาต GPS"));
-    }
+      // 5. ระบบกล้องและการลงเวลางาน
+      function startCamera() {
+        const video = document.getElementById("video");
+        navigator.mediaDevices
+          .getUserMedia({ video: { facingMode: "user" } })
+          .then((stream) => (video.srcObject = stream))
+          .catch((err) => alert("ไม่สามารถเปิดกล้องได้"));
+      }
 
-    // 5. ระบบกล้องและการลงเวลางาน
-    function startCamera() {
-      const video = document.getElementById('video');
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-        .then(stream => video.srcObject = stream)
-        .catch(err => alert("ไม่สามารถเปิดกล้องได้"));
-    }
+      function submitAttendance(type) {
+        document.getElementById("att-status").innerText =
+          "⌛ กำลังตรวจสอบพิกัดและใบหน้า...";
 
-    function submitAttendance(type) {
-      document.getElementById('att-status').innerText = "⌛ กำลังตรวจสอบพิกัดและใบหน้า...";
-      
-      navigator.geolocation.getCurrentPosition(pos => {
-        const canvas = document.getElementById('canvas');
-        const video = document.getElementById('video');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // ถ่ายรูปและ Mirror กลับให้เหมือนที่เห็นในจอ
-        const ctx = canvas.getContext('2d');
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0);
-        
-        const payload = {
-          action: "ATTENDANCE",
-          status: type,
-          lineUserId: uId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          image: canvas.toDataURL('image/jpeg', 0.6) // บีบอัดรูป 60%
-        };
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const canvas = document.getElementById("canvas");
+            const video = document.getElementById("video");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-        google.script.run.withSuccessHandler(res => {
-          alert(res);
-          document.getElementById('att-status').innerText = "✅ " + res;
-        }).handleServerAction(payload);
-      }, err => alert("กรุณาเปิด GPS"), { enableHighAccuracy: true });
-    }
+            // ถ่ายรูปและ Mirror กลับให้เหมือนที่เห็นในจอ
+            const ctx = canvas.getContext("2d");
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0);
 
-    // รันระบบเมื่อโหลดหน้าเสร็จ
-    window.onload = init;
-  </script>
-</body>
+            const payload = {
+              action: "ATTENDANCE",
+              status: type,
+              lineUserId: uId,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              image: canvas.toDataURL("image/jpeg", 0.6), // บีบอัดรูป 60%
+            };
+
+            google.script.run
+              .withSuccessHandler((res) => {
+                alert(res);
+                document.getElementById("att-status").innerText = "✅ " + res;
+              })
+              .handleServerAction(payload);
+          },
+          (err) => alert("กรุณาเปิด GPS"),
+          { enableHighAccuracy: true },
+        );
+      }
+
+      // รันระบบเมื่อโหลดหน้าเสร็จ
+      window.onload = init;
+    </script>
+  </body>
 </html>
